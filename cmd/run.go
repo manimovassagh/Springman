@@ -29,10 +29,10 @@ var runCmd = &cobra.Command{
 
 		if fileExists(gradlew) {
 			fmt.Println("🚀 Running with Gradle...")
-			runCmd = exec.Command(gradlew, "bootRun")
+			runCmd = exec.Command("./gradlew", "bootRun")
 		} else if fileExists(mvnw) {
 			fmt.Println("🚀 Running with Maven...")
-			runCmd = exec.Command(mvnw, "spring-boot:run")
+			runCmd = exec.Command("./mvnw", "spring-boot:run")
 		} else {
 			log.Fatalf("❌ Neither gradlew nor mvnw found in %s", projectDir)
 		}
