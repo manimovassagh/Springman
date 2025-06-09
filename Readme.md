@@ -1,67 +1,89 @@
-# Springman 🧰
+package cmd
 
-Springman is a lightweight CLI tool written in Go that helps you quickly generate and run Spring Boot projects using either Maven or Gradle.
+import (
+	"encoding/xml"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
-## 🚀 Features
+	"github.com/spf13/cobra"
+)
 
-- Generate new Spring Boot projects via [start.spring.io](https://start.spring.io)
-- Supports both Maven and Gradle
-- Automatically detects and runs the correct wrapper (`mvnw` or `gradlew`)
-- Easy to compile and use as a global CLI tool
+type Dependency struct {
+	XMLName    xml.Name `xml:"dependency"`
+	GroupID    string   `xml:"groupId"`
+	ArtifactID string   `xml:"artifactId"`
+}
 
-## 📦 Installation
+type Project struct {
+	XMLName     xml.Name     `xml:"project"`
+	Dependencies *Dependencies `xml:"dependencies"`
+}
 
-Build the CLI locally:
+type Dependencies struct {
+	XMLName     xml.Name     `xml:"dependencies"`
+	Dependency  []Dependency `xml:"dependency"`
+}
 
-```bash
-go build -o springman
-```
+var addCmd = &cobra.Command{
+	Use:   "add [project folder] [groupId:artifactId]",
+	Short: "Add a Maven dependency to pom.xml",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 2 {
+			fmt.Println("❌ Usage: springman add <project-folder> <groupId:artifactId>")
+			return
+		}
 
-Then move it to a global location:
+		projectDir := args[0]
+		coordinates := args[1]
 
-```bash
-sudo mv springman /usr/local/bin/
-```
+		parts := strings.Split(coordinates, ":")
+		if len(parts) != 2 {
+			fmt.Println("❌ Invalid coordinates. Use groupId:artifactId format.")
+			return
+		}
 
-## 🛠 Usage
+		pomPath := filepath.Join(projectDir, "pom.xml")
+		data, err := os.ReadFile(pomPath)
+		if err != nil {
+			fmt.Printf("❌ Failed to read pom.xml: %v\n", err)
+			return
+		}
 
-### Create a new project
+		var project Project
+		err = xml.Unmarshal(data, &project)
+		if err != nil {
+			fmt.Printf("❌ Failed to parse pom.xml: %v\n", err)
+			return
+		}
 
-```bash
-springman new myapp --build maven
-```
+		if project.Dependencies == nil {
+			project.Dependencies = &Dependencies{}
+		}
 
-Or with Gradle:
+		newDep := Dependency{
+			GroupID:    parts[0],
+			ArtifactID: parts[1],
+		}
+		project.Dependencies.Dependency = append(project.Dependencies.Dependency, newDep)
 
-```bash
-springman new myapp --build gradle
-```
+		output, err := xml.MarshalIndent(project, "", "  ")
+		if err != nil {
+			fmt.Printf("❌ Failed to marshal updated pom.xml: %v\n", err)
+			return
+		}
 
-### Run a project
+		err = os.WriteFile(pomPath, output, 0644)
+		if err != nil {
+			fmt.Printf("❌ Failed to write updated pom.xml: %v\n", err)
+			return
+		}
 
-```bash
-springman run myapp
-```
+		fmt.Println("✅ Dependency added successfully.")
+	},
+}
 
-## 💡 Example
-
-```bash
-springman new blogapp --build gradle
-cd blogapp
-springman run .
-```
-
-## 📁 Project Structure
-
-- `cmd/new.go` — command for project creation
-- `cmd/run.go` — command to run the generated Spring Boot project
-
-## 🧪 Requirements
-
-- Go 1.21+
-- Internet connection (to fetch Spring Boot ZIP)
-- Java 17+ installed
-
-## 📜 License
-
-MIT
+func init() {
+	rootCmd.AddCommand(addCmd)
+}
