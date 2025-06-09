@@ -27,7 +27,6 @@ var newCmd = &cobra.Command{
 		name := args[0]
 		fmt.Printf("📦 Generating %s project: %s\n", buildTool, name)
 
-		// Set build type and wrapper param
 		buildType := "maven-project"
 		wrapperFlag := "withMavenWrapper"
 		if buildTool == "gradle" {
@@ -35,7 +34,6 @@ var newCmd = &cobra.Command{
 			wrapperFlag = "withGradleWrapper"
 		}
 
-		// Construct download URL (no baseDir)
 		projectURL := fmt.Sprintf(
 			"https://start.spring.io/starter.zip?type=%s&language=java&bootVersion=3.3.0&groupId=com.example&artifactId=%s&name=%s&packageName=com.example.%s&dependencies=web&%s=true",
 			buildType, name, name, name, wrapperFlag,

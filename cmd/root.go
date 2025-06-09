@@ -7,14 +7,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// rootCmd is the base command
 var rootCmd = &cobra.Command{
 	Use:   "springman",
 	Short: "🚀 Springman: CLI tool for Spring Boot project automation",
-	Long: `Springman helps generate, manage, and scaffold Spring Boot apps easily.
-
-Usage:
-  springman new <project-name>`,
+	Long:  `Springman helps generate, manage, and scaffold Spring Boot apps easily.`,
 }
 
 // Execute runs the root command
@@ -28,4 +24,5 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(newCmd)
+	rootCmd.AddCommand(runCmd)
 }
