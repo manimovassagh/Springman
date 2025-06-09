@@ -25,26 +25,42 @@ var newCmd = &cobra.Command{
 		}
 
 		name := args[0]
-
-		// Map build type
-		buildType := "maven-project"
-		if buildTool == "gradle" {
-			buildType = "gradle-project"
-		}
-
 		fmt.Printf("📦 Generating %s project: %s\n", buildTool, name)
 
-		url := fmt.Sprintf("https://start.spring.io/starter.zip?type=%s&language=java&bootVersion=3.2.5&baseDir=%s&dependencies=web", buildType, name)
+		// Set build type and wrapper param
+		buildType := "maven-project"
+		wrapperFlag := "withMavenWrapper"
+		if buildTool == "gradle" {
+			buildType = "gradle-project"
+			wrapperFlag = "withGradleWrapper"
+		}
 
-		resp, err := http.Get(url)
+		// Construct download URL (no baseDir)
+		projectURL := fmt.Sprintf(
+			"https://start.spring.io/starter.zip?type=%s&language=java&bootVersion=3.3.0&groupId=com.example&artifactId=%s&name=%s&packageName=com.example.%s&dependencies=web&%s=true",
+			buildType, name, name, name, wrapperFlag,
+		)
+
+		req, err := http.NewRequest("GET", projectURL, nil)
 		if err != nil {
-			log.Fatalf("❌ Failed to download: %v", err)
+			log.Fatalf("❌ Failed to create request: %v", err)
+		}
+		req.Header.Set("User-Agent", "SpringmanCLI/1.0")
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatalf("❌ HTTP request failed: %v", err)
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode != http.StatusOK {
+			log.Fatalf("❌ Spring Initializr returned error: %s", resp.Status)
+		}
+
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatalf("❌ Failed to read zip content: %v", err)
+			log.Fatalf("❌ Failed to read response body: %v", err)
 		}
 
 		r, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
@@ -71,7 +87,7 @@ var newCmd = &cobra.Command{
 
 			src, err := f.Open()
 			if err != nil {
-				log.Fatalf("❌ Failed to open zip file content: %v", err)
+				log.Fatalf("❌ Failed to open zip content: %v", err)
 			}
 
 			_, err = io.Copy(dst, src)
