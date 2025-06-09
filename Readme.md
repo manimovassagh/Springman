@@ -1,89 +1,116 @@
-package cmd
+# 🧰 Springman
 
-import (
-	"encoding/xml"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
+Springman is a lightweight and fast CLI tool written in Go for bootstrapping, running, and managing Spring Boot projects.
 
-	"github.com/spf13/cobra"
-)
+## 🚀 Features
 
-type Dependency struct {
-	XMLName    xml.Name `xml:"dependency"`
-	GroupID    string   `xml:"groupId"`
-	ArtifactID string   `xml:"artifactId"`
-}
+- Generate new Spring Boot apps with Maven or Gradle
+- Run projects using wrapper scripts (`./mvnw`, `./gradlew`)
+- Add Maven dependencies to `pom.xml`
+- Remove existing dependencies from `pom.xml`
+- Clean XML formatting and prevents duplicates
+- Works offline after the initial setup
 
-type Project struct {
-	XMLName     xml.Name     `xml:"project"`
-	Dependencies *Dependencies `xml:"dependencies"`
-}
+---
 
-type Dependencies struct {
-	XMLName     xml.Name     `xml:"dependencies"`
-	Dependency  []Dependency `xml:"dependency"`
-}
+## 📦 Installation
 
-var addCmd = &cobra.Command{
-	Use:   "add [project folder] [groupId:artifactId]",
-	Short: "Add a Maven dependency to pom.xml",
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
-			fmt.Println("❌ Usage: springman add <project-folder> <groupId:artifactId>")
-			return
-		}
+Follow these steps to build and install Springman:
 
-		projectDir := args[0]
-		coordinates := args[1]
+### 1. Clone the repository
 
-		parts := strings.Split(coordinates, ":")
-		if len(parts) != 2 {
-			fmt.Println("❌ Invalid coordinates. Use groupId:artifactId format.")
-			return
-		}
+```bash
+git clone https://github.com/yourname/springman.git
+cd springman
+```
 
-		pomPath := filepath.Join(projectDir, "pom.xml")
-		data, err := os.ReadFile(pomPath)
-		if err != nil {
-			fmt.Printf("❌ Failed to read pom.xml: %v\n", err)
-			return
-		}
+### 2. Build the CLI
 
-		var project Project
-		err = xml.Unmarshal(data, &project)
-		if err != nil {
-			fmt.Printf("❌ Failed to parse pom.xml: %v\n", err)
-			return
-		}
+Make sure you have Go installed (version 1.21 or higher):
 
-		if project.Dependencies == nil {
-			project.Dependencies = &Dependencies{}
-		}
+```bash
+go build -o springman
+```
 
-		newDep := Dependency{
-			GroupID:    parts[0],
-			ArtifactID: parts[1],
-		}
-		project.Dependencies.Dependency = append(project.Dependencies.Dependency, newDep)
+### 3. Move the binary to your system path
 
-		output, err := xml.MarshalIndent(project, "", "  ")
-		if err != nil {
-			fmt.Printf("❌ Failed to marshal updated pom.xml: %v\n", err)
-			return
-		}
+This allows you to use `springman` from anywhere:
 
-		err = os.WriteFile(pomPath, output, 0644)
-		if err != nil {
-			fmt.Printf("❌ Failed to write updated pom.xml: %v\n", err)
-			return
-		}
+```bash
+sudo mv springman /usr/local/bin/
+```
 
-		fmt.Println("✅ Dependency added successfully.")
-	},
-}
+> 🛠️ You may need to enter your system password
 
-func init() {
-	rootCmd.AddCommand(addCmd)
-}
+### 4. Verify installation
+
+```bash
+springman --help
+```
+
+You should see the available commands and options.
+
+---
+
+## 🛠 Commands
+
+### `new`
+
+Create a new Spring Boot project.
+
+```bash
+springman new myapp --build maven
+```
+
+### `run`
+
+Run the specified Spring Boot project.
+
+```bash
+springman run myapp
+```
+
+### `add`
+
+Add a dependency to `pom.xml`.
+
+```bash
+springman add myapp org.springframework.boot:spring-boot-starter-data-jpa
+springman add myapp org.springframework.boot:spring-boot-starter-web:3.3.0
+```
+
+### `remove`
+
+Remove a dependency from `pom.xml`.
+
+```bash
+springman remove myapp org.springframework.boot:spring-boot-starter-web
+```
+
+---
+
+## 🧪 Requirements
+
+- Go 1.21+
+- Java 17+
+- Internet connection for downloading starter ZIP
+
+---
+
+## 📁 Project Structure
+
+- `cmd/` – contains CLI command implementations (`new`, `run`, `add`, `remove`)
+- `main.go` – entry point of the CLI
+- `go.mod` – Go module definition
+
+---
+
+## 📜 License
+
+MIT License
+
+---
+
+## 🙌 Author
+
+Made with ❤️ by [Mani Movassagh](https://github.com/manimovassagh)
